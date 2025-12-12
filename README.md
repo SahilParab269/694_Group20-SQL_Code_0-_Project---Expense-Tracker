@@ -15,7 +15,7 @@ git clone <given-github-repo-url> cd <project-folder-name>
 
 ## Install Backend Dependencies
 
-Go to 'backend' folder , open the command prompt and run:
+Go to 'backend' folder , open the command prompt and run: \n
 npm install
 This installs all required Node.js packages defined in package.json in the backend folder.
 
