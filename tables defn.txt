@@ -1,3 +1,5 @@
+CREATE SCHEMA IF NOT EXISTS expense_tracker;
+
 CREATE TABLE expense_tracker.customer_details (
     customer_id INT PRIMARY KEY,
     username VARCHAR(100) NOT NULL,
@@ -47,4 +49,5 @@ CREATE TABLE expense_tracker.admin_daily_count (
     date_count DATE PRIMARY KEY,
     count_customers INT NOT NULL,
     count_expenses INT NOT NULL
+
 );
