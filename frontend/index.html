@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Expense Tracker</title>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", sans-serif;
+        background: linear-gradient(135deg, #4f46e5, #6d28d9);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .container {
+        background: white;
+        width: 360px;
+        padding: 32px;
+        border-radius: 16px;
+        box-shadow: 0px 8px 24px rgba(0,0,0,0.2);
+        animation: fadeIn 0.5s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-sizing: border-box;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+        text-align: center;
+        color: #4f46e5;
+        margin-bottom: 24px;
+        font-size: 26px;
+    }
+
+    input {
+        width: 100%;
+        padding: 12px;
+        margin-top: 10px;
+        margin-bottom: 20px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 15px;
+        box-sizing: border-box;
+    }
+
+    input:focus {
+        outline: none;
+        border-color: #4f46e5;
+        box-shadow: 0 0 4px rgba(79,70,229,0.5);
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        background: #4f46e5;
+        color: white;
+        font-size: 16px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+
+    button:hover {
+        background: #4338ca;
+    }
+
+    .switch {
+        text-align: center;
+        margin-top: 12px;
+    }
+
+    .switch a {
+        color: #4f46e5;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .switch a:hover {
+        text-decoration: underline;
+    }
+
+    /* Message box */
+    .message-box {
+        background: #fee2e2;
+        color: #b91c1c;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+        display: none;
+    }
+    .message-box.success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+</style>
+
+</head>
+
+<body>
+    <div class="container">
+        <h2>Expense-IT !!</h2>
+
+        <!-- Message box -->
+        <div id="loginMessage" class="message-box"></div>
+
+        <form id="loginForm">
+            <input type="text" name="username" id="username" placeholder="Enter Username" required />
+            <input type="password" name="password" id="password" placeholder="Enter Password" required />
+            <button type="submit">Login</button>
+        </form>
+
+        <div class="switch">
+            Don’t have an account? <a href="./signup.html">Sign Up</a>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById("loginForm");
+        const msgBox = document.getElementById("loginMessage");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            msgBox.style.display = "none"; // hide old messages
+
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value.trim();
+
+           try {
+                const res = await fetch("http://localhost:3000/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+               });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    // Save customer_id and username in localStorage
+                    localStorage.setItem("customer_id", data.customer_id);
+                    localStorage.setItem("username", username);
+
+                    msgBox.className = "message-box success";
+                    msgBox.innerText = "Login successful! Redirecting...";
+                    msgBox.style.display = "block";
+
+                    setTimeout(() => {
+                        window.location.href = "dashboard1.html"; // redirect to dashboard
+                    }, 1000);
+                } else {
+                    msgBox.className = "message-box";
+                    msgBox.innerText = data.message || "Login failed";
+                    msgBox.style.display = "block";
+                }
+
+            } catch (err) {
+                msgBox.className = "message-box";
+                msgBox.innerText = "Network error: Could not reach server";
+                msgBox.style.display = "block";
+            }
+       });
+    </script>
+</body>
+</html>

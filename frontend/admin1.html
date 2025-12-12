@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | Expense Tracker</title>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", sans-serif;
+        background: linear-gradient(135deg, #000000, #1f1f1f);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .container {
+        background: #111111;
+        width: 360px;
+        padding: 32px;
+        border-radius: 16px;
+        box-shadow: 0px 8px 24px rgba(0,0,0,0.6);
+        animation: fadeIn 0.5s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-sizing: border-box;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+        text-align: center;
+        color: #e5e5e5;
+        margin-bottom: 24px;
+        font-size: 26px;
+    }
+
+    input {
+        width: 100%;
+        padding: 12px;
+        margin-top: 10px;
+        margin-bottom: 20px;
+        border: 1px solid #444;
+        border-radius: 8px;
+        font-size: 15px;
+        background: #1a1a1a;
+        color: #e5e5e5;
+        box-sizing: border-box;
+    }
+
+    input:focus {
+        outline: none;
+        border-color: #6b6b6b;
+        box-shadow: 0 0 4px rgba(180,180,180,0.5);
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        background: #222;
+        color: white;
+        font-size: 16px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+
+    button:hover {
+        background: #333;
+    }
+
+    .switch {
+        text-align: center;
+        margin-top: 12px;
+        color: #aaaaaa;
+    }
+
+    .switch a {
+        color: #bbbbbb;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .switch a:hover {
+        text-decoration: underline;
+    }
+
+    /* Message box */
+    .message-box {
+        background: #3a0000;
+        color: #ff8a8a;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+        display: none;
+    }
+    .message-box.success {
+        background: #003a1a;
+        color: #79ffaa;
+    }
+</style>
+
+</head>
+
+<body>
+    <div class="container">
+        <h2>Admin Login</h2>
+
+        <!-- Message box -->
+        <div id="loginMessage" class="message-box"></div>
+
+        <form id="loginForm">
+            <input type="text" name="admin_id" id="admin_id" placeholder="Enter Admin ID" required />
+            <input type="password" name="admin_pass" id="admin_pass" placeholder="Enter Password" required />
+            <button type="submit">Login</button>
+        </form>
+
+        <!-- <div class="switch">
+            For regular users? <a href="./index.html">Go to User Login</a>
+        </div> -->
+    </div>
+
+    <script>
+        const form = document.getElementById("loginForm");
+        const msgBox = document.getElementById("loginMessage");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            msgBox.style.display = "none";
+
+            const admin_id = document.getElementById("admin_id").value.trim();
+            const admin_pass = document.getElementById("admin_pass").value.trim();
+
+            try {
+                const res = await fetch("http://localhost:3000/admin/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ admin_id, admin_pass })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.setItem("admin_id", admin_id);
+
+                    msgBox.className = "message-box success";
+                    msgBox.innerText = "Login successful! Redirecting...";
+                    msgBox.style.display = "block";
+
+                    setTimeout(() => {
+                        window.location.href = "admin2.html";
+                    }, 1000);
+
+                } else {
+                    msgBox.className = "message-box";
+                    msgBox.innerText = data.message || "Login failed";
+                    msgBox.style.display = "block";
+                }
+
+            } catch (err) {
+                msgBox.className = "message-box";
+                msgBox.innerText = "Network error: Could not reach server";
+                msgBox.style.display = "block";
+            }
+        });
+    </script>
+</body>
+</html>

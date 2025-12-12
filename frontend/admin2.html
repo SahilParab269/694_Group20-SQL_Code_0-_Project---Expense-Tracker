@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard | Expense Tracker</title>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: "Segoe UI", sans-serif;
+        background: #ffffff;
+    }
+
+    /* NAVBAR */
+    header {
+        background: #000;
+        color: white;
+        padding: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-sizing: border-box;
+    }
+    header h2 {
+        margin: 0;
+        font-weight: 500;
+    }
+    header a {
+        color: white;
+        margin-right: 16px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 16px;
+    }
+    header button {
+        padding: 8px 16px;
+        background: #333;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    /* MAIN CONTENT */
+    main {
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .stats-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-box {
+        flex: 1 1 200px;
+        background: #000;
+        color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .stat-box h3 {
+        margin: 0 0 10px;
+        font-size: 18px;
+        font-weight: 500;
+    }
+    .stat-box p {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .filter-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 30px;
+        align-items: center;
+    }
+
+    .filter-container label {
+        font-weight: 500;
+    }
+
+    .filter-container input, .filter-container select {
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+    }
+
+    canvas {
+        background: #fff;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        margin-bottom: 30px;
+    }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<header>
+    <h2>Admin Dashboard</h2>
+    <div>
+        <a href="admin2.html">Dashboard</a>
+        <a href="admin3.html">Change Password</a>
+        <button onclick="logoutAdmin()">Logout</button>
+    </div>
+</header>
+
+<main>
+    <!-- STATS -->
+    <div class="stats-container">
+        <div class="stat-box">
+            <h3>Today's Users Count</h3>
+            <p id="dailyUserCount">0</p>
+        </div>
+        <div class="stat-box">
+            <h3>Total Expense Categories</h3>
+            <p id="totalCategories">0</p>
+        </div>
+        <div class="stat-box">
+            <h3>Total Expenses</h3>
+            <p id="totalExpenses">0</p>
+        </div>
+        <div class="stat-box">
+            <h3>Total Amount</h3>
+            <p id="totalAmount">0</p>
+        </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filter-container">
+        <label>Expenses Trend (Line Graph):</label>
+        <input type="month" id="trendMonth">
+        <button onclick="fetchExpenseTrend()">Show</button>
+    </div>
+    <canvas id="lineChart" height="150"></canvas>
+
+    <div class="filter-container">
+        <label>Monthly Expenses (Bar Graph):</label>
+        <select id="barYear"></select>
+        <button onclick="fetchMonthlyExpenses()">Show</button>
+    </div>
+    <canvas id="barChart" height="150"></canvas>
+</main>
+
+<script>
+const admin_id = localStorage.getItem("admin_id");
+if(!admin_id){
+    window.location.href = "admin1.html";
+}
+
+// --------------------
+// LOGOUT
+// --------------------
+function logoutAdmin() {
+    localStorage.clear();
+    window.location.href = "admin1.html";
+}
+
+// --------------------
+// UTILITY: Fetch and update stats
+// --------------------
+async function fetchStats() {
+    try {
+        const res = await fetch("http://localhost:3000/admin/dashboard/stats", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ admin_id })
+        });
+        const data = await res.json();
+        if(data.success){
+            document.getElementById("dailyUserCount").innerText = data.daily_count;
+            document.getElementById("totalCategories").innerText = data.total_categories;
+            document.getElementById("totalExpenses").innerText = data.total_expenses;
+            document.getElementById("totalAmount").innerText = parseFloat(data.total_amount).toFixed(2);
+
+            // Populate year dropdown
+            const years = data.available_years;
+            const barYear = document.getElementById("barYear");
+            barYear.innerHTML = '';
+            years.forEach(y => {
+                const opt = document.createElement("option");
+                opt.value = y;
+                opt.text = y;
+                barYear.appendChild(opt);
+            });
+        }
+    } catch(err){
+        console.error(err);
+    }
+}
+
+// --------------------
+// LINE CHART: Expenses trend
+// --------------------
+let lineChart;
+async function fetchExpenseTrend() {
+    const month = document.getElementById("trendMonth").value;
+    if(!month) return;
+
+    try {
+        const res = await fetch("http://localhost:3000/admin/dashboard/analytics/line", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ admin_id, month })
+        });
+        const data = await res.json();
+        if(data.success){
+            const ctx = document.getElementById('lineChart').getContext('2d');
+            const labels = data.labels;
+            const values = data.values;
+
+            if(lineChart) lineChart.destroy();
+            lineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Expenses (USD)',
+                        data: values,
+                        backgroundColor: 'rgba(0,0,0,0.2)',
+                        borderColor: 'rgba(0,0,0,1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive:true,
+                    plugins:{ legend:{ display:false } }
+                }
+            });
+        }
+    } catch(err){ console.error(err); }
+}
+
+// --------------------
+// BAR CHART: Monthly Expenses
+// --------------------
+let barChart;
+async function fetchMonthlyExpenses() {
+    const year = document.getElementById("barYear").value;
+    if(!year) return;
+
+    try {
+        const res = await fetch("http://localhost:3000/admin/dashboard/analytics/bar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ admin_id, year })
+        });
+        const data = await res.json();
+        if(data.success){
+            const ctx = document.getElementById('barChart').getContext('2d');
+            const labels = data.labels;
+            const values = data.amounts;
+            const counts = data.counts;
+
+            if(barChart) barChart.destroy();
+            barChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Amount (USD)',
+                        data: values,
+                        backgroundColor: 'rgba(0,0,0,0.6)'
+                    },{
+                        label: 'Number of Expenses',
+                        data: counts,
+                        backgroundColor: 'rgba(100,100,100,0.6)'
+                    }]
+                },
+                options: {
+                    responsive:true,
+                    scales: { y: { beginAtZero:true } }
+                }
+            });
+        }
+    } catch(err){ console.error(err); }
+}
+
+// --------------------
+// INIT: Fetch stats on page load
+// --------------------
+fetchStats();
+</script>
+
+</body>
+</html>

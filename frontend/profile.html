@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile | Expense Tracker</title>
+<style>
+    body { font-family:"Segoe UI", sans-serif; margin:0; padding:0; background:#f3f4f6; }
+    header { background:#4f46e5; color:white; padding:16px; display:flex; justify-content:space-between; align-items:center; }
+    header h2 { margin:0; }
+    header button { padding:8px 16px; background:#4338ca; border:none; color:white; border-radius:6px; cursor:pointer; }
+    header button:hover { background:#3730a3; }
+
+    nav { background:#3730a3; display:flex; gap:12px; padding:8px 16px; }
+    nav a { color:white; text-decoration:none; font-weight:600; padding:6px 12px; border-radius:6px; transition: background 0.2s; }
+    nav a:hover { background:#4f46e5; }
+
+    main { padding:24px; max-width:500px; margin:0 auto; }
+    .form-group { margin-bottom:16px; display:flex; flex-direction:column; }
+    .form-group label { font-weight:600; margin-bottom:6px; }
+    .form-group input { padding:8px 10px; border-radius:6px; border:1px solid #d1d5db; font-size:14px; width:100%; }
+
+    button { padding:10px 16px; border:none; border-radius:8px; cursor:pointer; font-weight:600; margin-top:10px; transition: background 0.2s; }
+    #updateProfileBtn { background:#4f46e5; color:white; }
+    #updateProfileBtn:hover { background:#4338ca; }
+
+    .message-box { padding:10px; border-radius:6px; margin-bottom:16px; display:none; text-align:center; }
+    .message-box.error { background:#fee2e2; color:#b91c1c; }
+    .message-box.success { background:#d1fae5; color:#065f46; }
+</style>
+</head>
+<body>
+
+<header>
+    <h2>Expense-IT !! <br> Welcome, <span id="usernameHeader"></span> !</h2>
+    <button id="logoutBtn">Logout</button>
+</header>
+
+<nav>
+    <a href="dashboard1.html">View Current Expenses</a>
+    <a href="dashboard2.html">Add a New Expense</a>
+    <a href="dashboard3.html">Add a New Expense Category</a>
+    <a href="dashboard4.html">Expense Analytics and Visualization</a>
+    <a href="profile.html">Profile Page Update</a>
+</nav>
+
+<main>
+    <div id="messageBox" class="message-box"></div>
+
+    <div class="form-group">
+        <label for="username">Username *</label>
+        <input type="text" id="username" required>
+    </div>
+
+    <div class="form-group">
+        <label for="email">Email (Cannot be changed)</label>
+        <input type="email" id="email" readonly>
+    </div>
+
+    <div class="form-group">
+        <label for="phone">Phone *</label>
+        <input type="text" id="phone" required>
+    </div>
+
+    <div class="form-group">
+        <label for="password">New Password</label>
+        <input type="password" id="password" placeholder="Leave blank to keep current password">
+    </div>
+
+    <div class="form-group" id="confirmPasswordGroup" style="display:none;">
+        <label for="confirmPassword">Confirm New Password</label>
+        <input type="password" id="confirmPassword">
+    </div>
+
+    <button id="updateProfileBtn">Update Profile</button>
+</main>
+
+<script>
+const customer_id = localStorage.getItem("customer_id");
+const usernameHeader = document.getElementById("usernameHeader");
+const msgBox = document.getElementById("messageBox");
+
+if(!customer_id) window.location.href = "index.html";
+
+document.getElementById("logoutBtn").addEventListener("click", ()=> {
+    localStorage.removeItem("customer_id");
+    localStorage.removeItem("username");
+    window.location.href = "index.html";
+});
+
+const usernameInput = document.getElementById("username");
+const emailInput = document.getElementById("email");
+const phoneInput = document.getElementById("phone");
+const passwordInput = document.getElementById("password");
+const confirmPasswordInput = document.getElementById("confirmPassword");
+const confirmPasswordGroup = document.getElementById("confirmPasswordGroup");
+const updateBtn = document.getElementById("updateProfileBtn");
+
+// ---------------------------
+// Show message
+// ---------------------------
+function showMessage(msg, type="success"){
+    msgBox.className = `message-box ${type}`;
+    msgBox.textContent = msg;
+    msgBox.style.display = "block";
+    setTimeout(()=> msgBox.style.display = "none", 3000);
+}
+
+// ---------------------------
+// Toggle confirm password field
+// ---------------------------
+passwordInput.addEventListener("input", ()=>{
+    if(passwordInput.value.trim() !== ""){
+        confirmPasswordGroup.style.display = "flex";
+    } else {
+        confirmPasswordGroup.style.display = "none";
+        confirmPasswordInput.value = "";
+    }
+});
+
+// ---------------------------
+// Fetch profile data
+// ---------------------------
+async function fetchProfile(){
+    try{
+        const res = await fetch("http://localhost:3000/profile", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({ customer_id })
+        });
+        const data = await res.json();
+        if(data.success){
+            usernameInput.value = data.profile.username;
+            emailInput.value = data.profile.email;
+            phoneInput.value = data.profile.phone;
+            usernameHeader.textContent = data.profile.username;
+        } else {
+            showMessage(data.message, "error");
+        }
+    }catch(err){
+        showMessage("Error fetching profile", "error");
+        console.error(err);
+    }
+}
+
+// ---------------------------
+// Update profile
+// ---------------------------
+updateBtn.addEventListener("click", async ()=>{
+    const username = usernameInput.value.trim();
+    const phone = phoneInput.value.trim();
+    const password = passwordInput.value.trim();
+    const confirmPassword = confirmPasswordInput.value.trim();
+
+    // Validation
+    if(username.length < 3) return showMessage("Username must be at least 3 characters","error");
+    if(!/^\d{10,15}$/.test(phone)) return showMessage("Phone must be 10-15 digits","error");
+    if(password !== "" && password !== confirmPassword) return showMessage("Passwords do not match","error");
+
+    try{
+        const res = await fetch("http://localhost:3000/profile/update", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({ customer_id, username, phone, password })
+        });
+        const data = await res.json();
+        if(data.success){
+            showMessage(data.message + ". Logging out...", "success");
+            usernameHeader.textContent = username;
+            passwordInput.value = "";
+            confirmPasswordInput.value = "";
+            confirmPasswordGroup.style.display = "none";
+
+            // Disable update button while logging out
+            updateBtn.disabled = true;
+            updateBtn.style.opacity = 0.6;
+            updateBtn.style.cursor = "not-allowed";
+
+            // Automatic logout after 1.5 seconds
+            setTimeout(()=>{
+                localStorage.removeItem("customer_id");
+                localStorage.removeItem("username");
+                window.location.href = "index.html";
+            }, 1500);
+
+        } else showMessage(data.message,"error");
+    }catch(err){
+        showMessage("Error updating profile","error");
+        console.error(err);
+    }
+});
+
+// ---------------------------
+// Initialize
+// ---------------------------
+fetchProfile();
+</script>
+</body>
+</html>

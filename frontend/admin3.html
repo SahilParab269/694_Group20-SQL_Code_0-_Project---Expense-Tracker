@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin | Change Password</title>
+
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: "Segoe UI", sans-serif;
+        background: #ffffff;
+        overflow: hidden; /* prevent scrollbars */
+    }
+
+    /* NAVBAR */
+    header {
+        background: #000;
+        color: white;
+        padding: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-sizing: border-box;
+    }
+    header h2 {
+        margin: 0;
+        font-weight: 500;
+    }
+    header a {
+        color: white;
+        margin-right: 16px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 16px;
+    }
+    header button {
+        padding: 8px 16px;
+        background: #333;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    /* CENTER FORM */
+    .form-wrapper {
+        height: calc(100% - 54px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 380px;
+        background: #000000;
+        color: #ffffff;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        box-sizing: border-box;
+    }
+
+    .container h2 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 6px;
+        border: none;
+        outline: none;
+        box-sizing: border-box;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 12px;
+        background: #ffffff;
+        color: #000000;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        border-radius: 6px;
+        margin-top: 8px;
+        transition: 0.2s;
+    }
+
+    .btn:hover {
+        opacity: 0.85;
+    }
+
+    .info-text {
+        text-align: center;
+        font-size: 14px;
+        margin-top: 10px;
+        color: #cccccc;
+    }
+</style>
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <header>
+        <h2>Admin Dashboard</h2>
+        <div>
+            <a href="admin2.html">Dashboard</a>
+            <a href="admin3.html">Change Password</a>
+            <button onclick="logoutAdmin()">Logout</button>
+        </div>
+    </header>
+
+    <!-- FORM CONTAINER -->
+    <div class="form-wrapper">
+        <div class="container">
+            <h2>Change Password</h2>
+            <form id="changePasswordForm">
+
+                <label>Current Password</label>
+                <input type="password" id="currentPwd" required>
+
+                <label>New Password</label>
+                <input type="password" id="newPwd" required>
+
+                <label>Confirm New Password</label>
+                <input type="password" id="confirmPwd" required>
+
+                <button type="submit" class="btn">Update Password</button>
+
+                <div class="info-text">Make sure your new password is strong.</div>
+            </form>
+        </div>
+    </div>
+
+<script>
+document.getElementById("changePasswordForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+
+    const currentPwd = document.getElementById("currentPwd").value.trim();
+    const newPwd = document.getElementById("newPwd").value.trim();
+    const confirmPwd = document.getElementById("confirmPwd").value.trim();
+
+    if(newPwd !== confirmPwd){
+        alert("New password and confirm password do not match.");
+        return;
+    }
+
+    const admin_id = localStorage.getItem("admin_id");
+    if(!admin_id){
+        alert("Admin not logged in.");
+        window.location.href = "admin1.html";
+        return;
+    }
+
+    try{
+        const res = await fetch("http://localhost:3000/admin/change_password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ admin_id, currentPwd, newPwd })
+        });
+
+        const data = await res.json();
+
+        if(data.success){
+            alert("Password updated successfully!");
+            // Clear form
+            document.getElementById("changePasswordForm").reset();
+            // LOGOUT after password change
+            logoutAdmin();
+        } else {
+            alert(data.message || "Failed to update password");
+        }
+
+    } catch(err){
+        console.error(err);
+        alert("Error updating password.");
+    }
+});
+
+/* ------------------------------
+   LOGOUT FUNCTION
+------------------------------ */
+function logoutAdmin() {
+    localStorage.clear();
+    window.location.href = "admin1.html";
+}
+</script>
+
+</body>
+</html>

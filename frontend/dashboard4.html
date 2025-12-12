@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Expense Analytics | Expense Tracker</title>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+  body { font-family:"Segoe UI",sans-serif; margin:0; padding:0; background:#f3f4f6; }
+  header { background:#4f46e5; color:white; padding:16px; display:flex; justify-content:space-between; align-items:center; }
+  header h2 { margin:0; }
+  header button { padding:8px 16px; background:#4338ca; border:none; color:white; border-radius:6px; cursor:pointer; }
+  header button:hover { background:#3730a3; }
+
+  nav { background:#3730a3; display:flex; gap:12px; padding:8px 16px; }
+  nav a { color:white; text-decoration:none; font-weight:600; padding:6px 12px; border-radius:6px; transition: background 0.2s; }
+  nav a:hover { background:#4f46e5; }
+
+  main { padding:20px; max-width:1100px; margin:0 auto; }
+
+  .row { display:flex; gap:16px; flex-wrap:wrap; }
+  .card { background:white; border-radius:8px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.06); flex:1 1 350px; min-width:300px; }
+
+  .card h3 { margin:0 0 12px 0; color:#111827; font-size:18px; }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+  .filters input, .filters select, .filters button { padding:8px 10px; border-radius:6px; border:1px solid #d1d5db; font-size:14px; }
+
+  .filters button { background:#4f46e5; color:white; border:none; cursor:pointer; }
+  .filters button:hover { background:#4338ca; }
+
+  canvas { width:100% !important; height:320px !important; }
+
+  .note { font-size:13px; color:#374151; margin-top:8px; }
+
+  .message { padding:10px; border-radius:6px; margin-bottom:10px; display:none; }
+  .message.error { background:#fee2e2; color:#b91c1c; }
+  .message.success { background:#d1fae5; color:#065f46; }
+
+  /* Custom multi-select dropdown */
+  .multi-select-container { position: relative; display:inline-block; width:180px; }
+  .multi-select-container .selected-display {
+    padding:8px 10px; border:1px solid #d1d5db; border-radius:6px; cursor:pointer; background:#fff;
+  }
+  .multi-select-container .options-list {
+    position:absolute; top:100%; left:0; right:0; background:#fff; border:1px solid #d1d5db; border-radius:6px; max-height:150px; overflow-y:auto; display:none; z-index:10;
+  }
+  .multi-select-container .options-list div.option {
+    padding:6px 10px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;
+  }
+  .multi-select-container .options-list div.option:hover { background:#f3f4f6; }
+  .multi-select-container .options-list .control-buttons { display:flex; justify-content:space-between; padding:4px 6px; border-bottom:1px solid #e5e7eb; }
+  .multi-select-container .options-list .control-buttons button { font-size:12px; padding:2px 6px; }
+  .multi-select-container .options-list div.option span.checkmark { font-weight:bold; visibility: visible; }
+</style>
+</head>
+<body>
+
+<header>
+  <h2>Expense-IT !! <br> Welcome, <span id="username"></span> !</h2>
+  <button id="logoutBtn">Logout</button>
+</header>
+
+<nav>
+  <a href="dashboard1.html">View Current Expenses</a>
+  <a href="dashboard2.html">Add a New Expense</a>
+  <a href="dashboard3.html">Add a New Expense Category</a>
+  <a href="dashboard4.html">Expense Analytics and Visualization</a>
+  <a href="profile.html">Profile Page Update</a>
+</nav>
+
+<main>
+  <div id="msg" class="message"></div>
+
+  <!-- Level 1: Pie + Expenses Category Bar -->
+  <div class="row">
+    <!-- Pie card -->
+    <div class="card">
+      <h3>Category Share (Pie)</h3>
+      <div class="filters">
+        <label>Start: <input type="date" id="pieStart"></label>
+        <label>End: <input type="date" id="pieEnd"></label>
+        <label>Month: <input type="month" id="pieMonth"></label>
+        <div class="multi-select-container" id="pieMultiSelect">
+          <div class="selected-display">Select Categories</div>
+          <div class="options-list"></div>
+        </div>
+        <button id="pieRefresh">Refresh Pie</button>
+        <!-- <button id="pieReset">Reset</button> -->
+      </div>
+      <canvas id="pieChart"></canvas>
+      <div class="note">Pie shows relative USD spend per category for the selected range.</div>
+    </div>
+
+    <!-- Expenses Category Bar -->
+    <div class="card">
+      <h3>Expenses Category (Bar)</h3>
+      <div class="filters">
+        <label>Start: <input type="date" id="expStart"></label>
+        <label>End: <input type="date" id="expEnd"></label>
+        <label>Month: <input type="month" id="expMonth"></label>
+        <div class="multi-select-container" id="expMultiSelect">
+          <div class="selected-display">Select Categories</div>
+          <div class="options-list"></div>
+        </div>
+        <button id="expRefresh">Refresh Expenses</button>
+        <!-- <button id="expReset">Reset</button> -->
+      </div>
+      <canvas id="expChart"></canvas>
+      <div class="note">Shows USD spent per category for the selected period.</div>
+    </div>
+  </div>
+
+  <!-- Level 2: Daily Stacked Bar (full width) -->
+  <div class="row" style="margin-top:16px;">
+    <div class="card" style="flex:1 1 100%;">
+      <h3>Daily Breakdown (Stacked Bar)</h3>
+      <div class="filters">
+        <label>Month: <input type="month" id="barMonth"></label>
+        <div class="multi-select-container" id="barMultiSelect">
+          <div class="selected-display">Select Categories</div>
+          <div class="options-list"></div>
+        </div>
+        <button id="barRefresh">Refresh Bar</button>
+      </div>
+      <canvas id="barChart"></canvas>
+      <div class="note">Each bar is a day; colors = categories. Use the legend to toggle categories.</div>
+    </div>
+  </div>
+
+  <!-- Level 3: Category Trends (Line, full width) -->
+  <div class="row" style="margin-top:16px;">
+    <div class="card" style="flex:1 1 100%;">
+      <h3>Category Trends (Line)</h3>
+      <div class="filters">
+        <label>Month: <input type="month" id="lineMonth"></label>
+        <div class="multi-select-container" id="lineMultiSelect">
+          <div class="selected-display">Select Categories</div>
+          <div class="options-list"></div>
+        </div>
+        <button id="lineRefresh">Refresh Line</button>
+      </div>
+      <canvas id="lineChart"></canvas>
+      <div class="note">Shows daily trend for every category in the month.</div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ====== Utilities & init ====== */
+const customer_id = localStorage.getItem("customer_id");
+const username = localStorage.getItem("username") || "User";
+if(!customer_id) window.location.href = "index.html";
+document.getElementById("username").textContent = username;
+
+document.getElementById("logoutBtn").addEventListener("click", ()=>{
+  localStorage.removeItem("customer_id");
+  localStorage.removeItem("username");
+  window.location.href = "index.html";
+});
+
+const showMsg = (txt, type="error")=>{
+  const el = document.getElementById("msg");
+  el.className = "message " + (type === "error" ? "error" : "success");
+  el.textContent = txt;
+  el.style.display = "block";
+  setTimeout(()=> el.style.display = "none", 3500);
+};
+
+function categoryColor(name){
+  let h = 0;
+  for(let i=0;i<name.length;i++){ h = name.charCodeAt(i) + ((h<<5) - h); h = h & h; }
+  const hue = Math.abs(h) % 360;
+  return `hsl(${hue} 70% 45%)`;
+}
+
+let pieChart=null, expChart=null, barChart=null, lineChart=null;
+function destroyChart(c){ if(c){ try{ c.destroy(); } catch(e){} } }
+
+/* ====== Backend fetch ====== */
+async function fetchPieData(filters){
+  const res = await fetch("http://localhost:3000/dashboard/analytics/pie", {
+    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({customer_id, ...filters})
+  });
+  const data = await res.json();
+  if(!data.success) throw new Error(data.message||"Pie fetch failed");
+  return data.data;
+}
+async function fetchDailyRows(month){
+  const res = await fetch("http://localhost:3000/dashboard/analytics/daily", {
+    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({customer_id, month})
+  });
+  const data = await res.json();
+  if(!data.success) throw new Error(data.message||"Daily fetch failed");
+  return data.rows;
+}
+
+/* ====== Multi-Select Dropdown ====== */
+function initMultiSelect(containerId, categories, onChange){
+  const container = document.getElementById(containerId);
+  const display = container.querySelector(".selected-display");
+  const optionsList = container.querySelector(".options-list");
+  optionsList.innerHTML = "";
+
+  const ctrl = document.createElement("div");
+  ctrl.className = "control-buttons";
+  const btnSelectAll = document.createElement("button");
+  btnSelectAll.type="button"; btnSelectAll.textContent="Select All";
+  const btnDeselectAll = document.createElement("button");
+  btnDeselectAll.type="button"; btnDeselectAll.textContent="Deselect All";
+  ctrl.appendChild(btnSelectAll); ctrl.appendChild(btnDeselectAll);
+  optionsList.appendChild(ctrl);
+
+  categories.forEach(c=>{
+    const div = document.createElement("div");
+    div.className="option"; 
+    div.dataset.value=c; 
+    div.dataset.selected="true";
+
+    const text = document.createElement("span"); text.textContent = c;
+    const check = document.createElement("span"); check.className="checkmark"; check.textContent="✓";
+    div.appendChild(text); div.appendChild(check);
+
+    optionsList.appendChild(div);
+  });
+
+  const updateDisplay = ()=>{
+    const optionDivs = Array.from(optionsList.querySelectorAll(".option"));
+    const selectedOpts = optionDivs.filter(o=>o.dataset.selected==="true");
+    const selected = selectedOpts.map(o=>o.dataset.value);
+
+    if(selected.length===0) display.textContent="Select Categories";
+    else if(selected.length<=2) display.textContent=selected.join(", ");
+    else display.textContent=`${selected.length} selected`;
+
+    optionDivs.forEach(o=>{
+      const check = o.querySelector(".checkmark");
+      check.style.visibility = (o.dataset.selected==="true") ? "visible" : "hidden";
+    });
+
+    if(onChange) onChange(selected);
+  };
+  updateDisplay();
+
+  display.onclick = ()=>{ optionsList.style.display = optionsList.style.display==="block"?"none":"block"; };
+
+  optionsList.querySelectorAll(".option").forEach(opt=>{
+    opt.onclick = ()=>{
+      opt.dataset.selected = opt.dataset.selected==="true"?"false":"true";
+      updateDisplay();
+    };
+  });
+
+  btnSelectAll.onclick = ()=>{ optionsList.querySelectorAll(".option").forEach(o=>o.dataset.selected="true"); updateDisplay(); };
+  btnDeselectAll.onclick = ()=>{ optionsList.querySelectorAll(".option").forEach(o=>o.dataset.selected="false"); updateDisplay(); };
+
+  document.addEventListener("click",(e)=>{ if(!container.contains(e.target)) optionsList.style.display="none"; });
+
+  return ()=> Array.from(optionsList.querySelectorAll(".option")).filter(o=>o.dataset.selected==="true").map(o=>o.dataset.value);
+}
+
+/* ====== Daily / Line Data Processing ====== */
+function processDailyRows(rows, month){
+  const [y,m]=month.split("-");
+  const first=new Date(Number(y),Number(m)-1,1);
+  const next=new Date(Number(y),Number(m),1);
+  const last=new Date(next-1);
+  const dates=[]; let d=new Date(first);
+  while(d<=last){ dates.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  const categories=[...new Set(rows.map(r=>r.category))].sort();
+  const matrix={}; categories.forEach(cat=>matrix[cat]=Array(dates.length).fill(0));
+  const dateIndex={}; dates.forEach((dt,i)=>dateIndex[dt]=i);
+  rows.forEach(r=>{ const dt=(new Date(r.date)).toISOString().slice(0,10); if(dt in dateIndex) matrix[r.category][dateIndex[dt]] += Number(r.amount||0); });
+  return {dates,categories,matrix};
+}
+
+function renderBarFromProcessed({dates,categories,matrix}, selectedCategories){
+  const filtered = categories.filter(c=>selectedCategories.includes(c));
+  destroyChart(barChart);
+  const ctx=document.getElementById("barChart").getContext("2d");
+  const datasets = filtered.map(cat=>({label:cat,data:matrix[cat],backgroundColor:categoryColor(cat),stack:'stack1'}));
+  barChart = new Chart(ctx,{
+    type:'bar',
+    data:{labels:dates,datasets},
+    options:{
+      plugins:{legend:{position:'bottom'},tooltip:{mode:'index',intersect:false}},
+      responsive:true,
+      scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{callback:v=>`$${v}`}}}
+    }
+  });
+}
+
+function renderLineFromProcessed({dates,categories,matrix}, selectedCategories){
+  const filtered = categories.filter(c=>selectedCategories.includes(c));
+  destroyChart(lineChart);
+  const ctx=document.getElementById("lineChart").getContext("2d");
+  const datasets = filtered.map(cat=>({label:cat,data:matrix[cat],borderColor:categoryColor(cat),backgroundColor:categoryColor(cat),fill:false,tension:0.2,pointRadius:2}));
+  lineChart = new Chart(ctx,{
+    type:'line',
+    data:{labels:dates,datasets},
+    options:{
+      plugins:{legend:{position:'bottom'},tooltip:{mode:'index',intersect:false}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>`$${v}`}}}
+    }
+  });
+}
+
+/* ====== Pie & Expenses Charts ====== */
+async function renderPie(selectedCategories){
+  const start=document.getElementById("pieStart").value||null;
+  const end=document.getElementById("pieEnd").value||null;
+  const month=document.getElementById("pieMonth").value||null;
+  const raw = await fetchPieData({startDate:start,endDate:end,month});
+  const filtered = raw.filter(r=>selectedCategories.includes(r.category));
+  const labels = filtered.map(r=>r.category);
+  const values = filtered.map(r=>r.total);
+  const colors = labels.map(l=>categoryColor(l));
+  destroyChart(pieChart);
+  const ctx=document.getElementById("pieChart").getContext("2d");
+  pieChart = new Chart(ctx,{
+    type:'pie',
+    data:{labels,datasets:[{data:values,backgroundColor:colors,borderColor:'#fff',borderWidth:1}]},
+    options:{plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>`${ctx.label}: $${Number(ctx.raw).toFixed(2)}`}}}}
+  });
+}
+
+async function renderExp(selectedCategories){
+  const start=document.getElementById("expStart").value||null;
+  const end=document.getElementById("expEnd").value||null;
+  const month=document.getElementById("expMonth").value||null;
+  const raw = await fetchPieData({startDate:start,endDate:end,month});
+  const filtered = raw.filter(r=>selectedCategories.includes(r.category));
+  const labels = filtered.map(r=>r.category);
+  const values = filtered.map(r=>r.total);
+  const colors = labels.map(l=>categoryColor(l));
+  destroyChart(expChart);
+  const ctx=document.getElementById("expChart").getContext("2d");
+  expChart = new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{label:'Amount ($)',data:values,backgroundColor:colors}]},
+    options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`$${Number(ctx.raw).toFixed(2)}`}}},responsive:true,scales:{y:{beginAtZero:true,ticks:{callback:v=>`$${v}`}}}}
+  });
+}
+
+/* ====== Initial load ====== */
+(async function init(){
+  const pieData = await fetchPieData({});
+  const pieCategories = pieData.map(r=>r.category);
+  let pieSelected = pieCategories.slice();
+  initMultiSelect("pieMultiSelect", pieCategories, sel=>{ pieSelected=sel; renderPie(pieSelected); });
+  renderPie(pieSelected);
+
+  const expData = await fetchPieData({});
+  const expCategories = expData.map(r=>r.category);
+  let expSelected = expCategories.slice();
+  initMultiSelect("expMultiSelect", expCategories, sel=>{ expSelected=sel; renderExp(expSelected); });
+  renderExp(expSelected);
+
+  const now = new Date(); 
+  const mon = now.toISOString().slice(0,7);
+  document.getElementById("barMonth").value = mon;
+  document.getElementById("lineMonth").value = mon;
+
+  const rows = await fetchDailyRows(mon);
+  const processed = processDailyRows(rows,mon);
+
+  let barSelected = processed.categories.slice();
+  initMultiSelect("barMultiSelect", processed.categories, sel=>{ barSelected=sel; renderBarFromProcessed(processed, barSelected); });
+  renderBarFromProcessed(processed, barSelected);
+
+  let lineSelected = processed.categories.slice();
+  initMultiSelect("lineMultiSelect", processed.categories, sel=>{ lineSelected=sel; renderLineFromProcessed(processed, lineSelected); });
+  renderLineFromProcessed(processed, lineSelected);
+
+  // Refresh buttons
+  document.getElementById("pieRefresh").onclick = ()=>renderPie(pieSelected);
+  document.getElementById("expRefresh").onclick = ()=>renderExp(expSelected);
+
+  document.getElementById("barRefresh").onclick = async ()=>{
+    const month = document.getElementById("barMonth").value;
+    const rows = await fetchDailyRows(month);
+    const processed = processDailyRows(rows, month);
+
+    const multiSelectFunc = initMultiSelect("barMultiSelect", processed.categories, sel=>{
+      barSelected = sel;
+      renderBarFromProcessed(processed, barSelected);
+    });
+
+    barSelected = barSelected.filter(c => processed.categories.includes(c));
+    if(barSelected.length === 0) barSelected = processed.categories.slice();
+    renderBarFromProcessed(processed, barSelected);
+  };
+
+  document.getElementById("lineRefresh").onclick = async ()=>{
+    const month = document.getElementById("lineMonth").value;
+    const rows = await fetchDailyRows(month);
+    const processed = processDailyRows(rows, month);
+
+    const multiSelectFunc = initMultiSelect("lineMultiSelect", processed.categories, sel=>{
+      lineSelected = sel;
+      renderLineFromProcessed(processed, lineSelected);
+    });
+
+    lineSelected = lineSelected.filter(c => processed.categories.includes(c));
+    if(lineSelected.length === 0) lineSelected = processed.categories.slice();
+    renderLineFromProcessed(processed, lineSelected);
+  };
+})();
+</script>
+</body>
+</html>

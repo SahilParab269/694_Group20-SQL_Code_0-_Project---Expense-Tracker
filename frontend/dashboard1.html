@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Expense Tracker</title>
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f3f4f6;
+        }
+
+        header {
+            background: #4f46e5;
+            color: white;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 {
+            margin: 0;
+        }
+
+        header button {
+            padding: 8px 16px;
+            background: #4338ca;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        header button:hover {
+            background: #3730a3;
+        }
+
+        nav {
+            background: #3730a3;
+            display: flex;
+            gap: 12px;
+            padding: 8px 16px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        nav a:hover {
+            background: #4f46e5;
+        }
+
+        main {
+            padding: 24px;
+             max-width:1150px;
+              margin:0 auto;
+        }
+
+        .summary {
+            margin-bottom: 24px;
+        }
+
+        .summary span {
+            display: inline-block;
+            margin-right: 20px;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        table th,
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        th.expense-name,
+        td.expense-name {
+            width: 20%;
+        }
+
+        th.expense-date,
+        td.expense-date {
+            width: 20%;
+        }
+
+        th.expense-comment,
+        td.expense-comment {
+            width: 30%;
+        }
+
+        th.expense-amount,
+        td.expense-amount {
+            width: 15%;
+        }
+
+        th.expense-action,
+        td.expense-action {
+            width: 20%;
+        }
+
+        table th {
+            background: #e0e7ff;
+        }
+
+        .filters {
+            margin-bottom: 16px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filters label {
+            font-weight: 600;
+        }
+
+        .filters input,
+        .filters select,
+        .filters button {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+        }
+
+        .filters button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .filters button:hover {
+            background: #4338ca;
+        }
+
+        .message-box {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .message-box.error {
+            background: #fee2e2;
+            color: #8a5757;
+        }
+
+        .message-box.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .action-btn {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-right: 4px;
+        }
+
+        .delete-btn {
+            background: #ef4444;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #b91c1c;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>Expense-IT !! <br> Welcome, <span id="username"></span> !</h2>
+        <button id="logoutBtn">Logout</button>
+    </header>
+
+    <nav>
+        <a href="dashboard1.html">View Current Expenses</a>
+        <a href="dashboard2.html">Add a New Expense</a>
+        <a href="dashboard3.html">Add a New Expense Category</a>
+        <a href="dashboard4.html">Expense Analytics and Visualization</a>
+        <a href="profile.html">Profile Page Update</a>
+    </nav>
+
+    <main>
+        <div id="messageBox" class="message-box"></div>
+
+        <div class="filters">
+            <label for="startDate">Start Date:</label>
+            <input type="date" id="startDate">
+            <label for="endDate">End Date:</label>
+            <input type="date" id="endDate">
+            <label for="monthSelect">Month:</label>
+            <input type="month" id="monthSelect">
+            <label for="categorySelect">Category:</label>
+            <select id="categorySelect">
+                <option value="">All</option>
+            </select>
+            <button id="applyFilters">Apply Filters</button>
+            <button id="resetFilters">Reset</button>
+        </div>
+
+        <div class="summary" id="summary">
+            <span>Total Expenses: <strong id="totalExpenses">0</strong></span>
+            <span>Total Amount: $<strong id="totalAmount">0</strong></span>
+            <span>Average per Transaction: $<strong id="avgAmount">0</strong></span>
+        </div>
+
+        <table id="expenseTable">
+            <thead>
+                <tr>
+                    <th class="expense-name">Expense Name</th>
+                    <th class="expense-date">Date</th>
+                    <th class="expense-comment">Comment</th>
+                    <th class="expense-amount">Amount (USD)</th>
+                    <th class="expense-action">Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </main>
+
+    <script>
+        const customer_id = localStorage.getItem("customer_id");
+        const username = localStorage.getItem("username") || "User";
+        if (!customer_id) window.location.href = "index.html";
+
+        const msgBox = document.getElementById("messageBox");
+        const expenseTableBody = document.querySelector("#expenseTable tbody");
+        const totalExpensesEl = document.getElementById("totalExpenses");
+        const totalAmountEl = document.getElementById("totalAmount");
+        const avgAmountEl = document.getElementById("avgAmount");
+        const categorySelect = document.getElementById("categorySelect");
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            localStorage.removeItem("customer_id");
+            localStorage.removeItem("username");
+            window.location.href = "index.html";
+        });
+
+        function showMessage(msg, type = "success") {
+            msgBox.className = `message-box ${type}`;
+            msgBox.textContent = msg;
+            msgBox.style.display = "block";
+        }
+
+        function formatDateUS(dateStr) {
+            const d = new Date(dateStr);
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            return `${mm}-${dd}-${yyyy}`;
+        }
+
+        async function fetchCategories() {
+            try {
+                const res = await fetch("http://localhost:3000/dashboard/categories", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ customer_id })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    categorySelect.innerHTML = `<option value="">All</option>`;
+                    data.categories.forEach(cat => {
+                        const opt = document.createElement("option");
+                        opt.value = cat.expense_name;
+                        opt.textContent = cat.expense_name;
+                        categorySelect.appendChild(opt);
+                    });
+                } else showMessage(data.message, "error");
+            } catch (err) {
+                showMessage("Error fetching categories", "error");
+                console.error(err);
+            }
+        }
+
+        async function fetchExpenses(filters = {}) {
+            try {
+                const res = await fetch("http://localhost:3000/dashboard/expenses", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ customer_id, ...filters })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    renderTable(data.expenses);
+                    renderSummary(data.expenses);
+                } else showMessage(data.message, "error");
+            } catch (err) {
+                showMessage("Network error: Could not reach server", "error");
+                console.error(err);
+            }
+        }
+
+        function renderTable(expenses) {
+            expenseTableBody.innerHTML = "";
+            expenses.forEach(exp => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td class="expense-name">${exp.expense_name}</td>
+                    <td class="expense-date">${formatDateUS(exp.expense_date)}</td>
+                    <td class="expense-comment">${exp.expense_comment || ""}</td>
+                    <td class="expense-amount">${exp.amount.toFixed(2)}</td>
+                    <td class="expense-action">
+                        <button class="action-btn delete-btn" data-id="${exp.expense_id}">Delete</button>
+                    </td>
+                `;
+                expenseTableBody.appendChild(tr);
+            });
+
+            document.querySelectorAll(".delete-btn").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    const id = btn.dataset.id;
+                    if (confirm("Are you sure you want to delete this expense?")) {
+                        try {
+                            const res = await fetch("http://localhost:3000/dashboard/delete_expense", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    customer_id: parseInt(customer_id),
+                                    expense_id: parseInt(id)
+                                })
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                                showMessage("Expense deleted successfully", "success");
+                                fetchExpenses({});
+                            } else showMessage(data.message, "error");
+                        } catch (err) {
+                            showMessage("Network error: Could not delete expense", "error");
+                            console.error(err);
+                        }
+                    }
+                });
+            });
+        }
+
+        function renderSummary(expenses) {
+            const total = expenses.reduce((acc, e) => acc + e.amount, 0);
+            totalExpensesEl.textContent = expenses.length;
+            totalAmountEl.textContent = total.toFixed(2);
+            avgAmountEl.textContent = (expenses.length ? total / expenses.length : 0).toFixed(2);
+        }
+
+        document.getElementById("applyFilters").addEventListener("click", () => {
+            const filters = {
+                startDate: document.getElementById("startDate").value || null,
+                endDate: document.getElementById("endDate").value || null,
+                month: document.getElementById("monthSelect").value || null,
+                category: document.getElementById("categorySelect").value || null
+            };
+            fetchExpenses(filters);
+        });
+
+        document.getElementById("resetFilters").addEventListener("click", () => {
+            document.getElementById("startDate").value = "";
+            document.getElementById("endDate").value = "";
+            document.getElementById("monthSelect").value = "";
+            document.getElementById("categorySelect").value = "";
+            fetchExpenses({});
+        });
+
+        document.getElementById("username").textContent = username;
+        fetchCategories();
+        fetchExpenses({});
+    </script>
+</body>
+</html>
