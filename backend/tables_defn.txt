@@ -1,0 +1,50 @@
+CREATE TABLE expense_tracker.customer_details (
+    customer_id INT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    phone VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE expense_tracker.customer_login (
+    customer_id INT PRIMARY KEY,
+    pass_word_hash VARCHAR(255) NOT NULL,
+    last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES expense_tracker.customer_details(customer_id)
+);
+
+CREATE TABLE expense_tracker.expense_category (
+    customer_id INT,
+    expense_name VARCHAR(100) NOT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES expense_tracker.customer_details(customer_id),
+    PRIMARY KEY (customer_id, expense_name)
+);  
+
+CREATE TABLE expense_tracker.expense_records (
+    expense_id SERIAL PRIMARY KEY,
+    customer_id INT,
+    expense_name VARCHAR(100),
+    expense_date DATE NOT NULL,
+    expense_comment TEXT NOT NULL,
+    FOREIGN KEY (customer_id, expense_name) REFERENCES expense_tracker.expense_category(customer_id, expense_name)
+);
+
+CREATE TABLE expense_tracker.expense_transaction (
+    expense_id INT PRIMARY KEY,
+    USD_amount DECIMAL(10,2) NOT NULL,
+    INR_amount DECIMAL(10,2) NOT NULL,
+    EUR_amount DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (expense_id) REFERENCES expense_tracker.expense_records(expense_id)
+);
+
+CREATE TABLE expense_tracker.admin_details (
+    admin_id INT PRIMARY KEY,
+    admin_pass VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE expense_tracker.admin_daily_count (
+    date_count DATE PRIMARY KEY,
+    count_customers INT NOT NULL,
+    count_expenses INT NOT NULL
+);
