@@ -1,5 +1,7 @@
 # 694_Group20-SQL_Code_0-_Project---Expense-Tracker
 
+# Application Setup Instructions
+
 ## Prerequisites
 
 Ensure the following tools are installed on your system:
