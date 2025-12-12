@@ -49,5 +49,4 @@ CREATE TABLE expense_tracker.admin_daily_count (
     date_count DATE PRIMARY KEY,
     count_customers INT NOT NULL,
     count_expenses INT NOT NULL
-
 );
