@@ -16,7 +16,7 @@ Ensure the following tools are installed on your system:
 
 ## Clone the Repository
 
-git clone <given-github-repo-url> cd <project-folder-name>
+git clone 'given-github-repo-url' cd 'project-folder-name'
 
 ## Install Backend Dependencies
 
